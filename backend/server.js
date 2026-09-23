@@ -15,7 +15,12 @@ app.use('/api/auth', authRouter);
 app.use('/api/habits', requireAuth, habitsRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
 app.use('/api/dashboard', requireAuth, dashboardRouter);
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 if (require.main === module) {
   mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/habit-tracker')
