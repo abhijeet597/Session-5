@@ -104,4 +104,4 @@ async function getDashboard(req, res) {
   });
 }
 
-module.exports = { getDashboard };
+module.exports = { getDashboard, calculateStreak: currentStreak, longestStreak, weeklyCompletionRate: thisWeekCompletionRate };
