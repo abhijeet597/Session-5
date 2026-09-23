@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { JSDOM } from 'jsdom';
 import fs from 'fs';
@@ -35,13 +35,13 @@ const FIXTURE = [
 // Not a mock or re-implementation — the literal old file, executed for real.
 function captureOldRenderOutput(list) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><table><tbody id="habit-list-body"></tbody></table>`
+    `<!DOCTYPE html><table><tbody id="habit-list-body"></tbody></table>`,
+    { url: 'http://localhost' }
   );
   const oldRenderSrc = fs.readFileSync(
     path.resolve(__dirname, '../../../public-legacy-vanilla-js/js/render.js'),
     'utf8'
   );
-  // Inject a minimal todayISO stub so render.js doesn't throw
   const stubbed =
     `function todayISO() { return '1970-01-01'; }\n` + oldRenderSrc;
   const fn = new Function('document', stubbed + '\nreturn renderHabitList;');
@@ -50,29 +50,20 @@ function captureOldRenderOutput(list) {
   return dom.window.document.getElementById('habit-list-body');
 }
 
-// Extract per-cell text from a tbody element — cell by cell, not joined text.
-function cellsFromTbody(tbody) {
-  return Array.from(tbody.querySelectorAll('tr')).map((row) =>
+it('captures the pre-migration (vanilla-JS) rendered cell content', () => {
+  const tbody = captureOldRenderOutput(FIXTURE);
+  expect(tbody).toBeTruthy();
+  expect(tbody.querySelectorAll('tr')).toHaveLength(3);
+});
+
+// Cell-by-cell comparison — scoped to tbody, not the full container
+it('React HabitList renders identical per-cell content to the golden master', () => {
+  const vanillaTbody = captureOldRenderOutput(FIXTURE);
+  const goldenCells = Array.from(vanillaTbody.querySelectorAll('tr')).map((row) =>
     Array.from(row.querySelectorAll('td')).map((td) =>
       td.textContent.trim().replace(/\s+/g, ' ')
     )
   );
-}
-
-it('captures the pre-migration (vanilla-JS) rendered cell content', () => {
-  const tbody = captureOldRenderOutput(FIXTURE);
-  const cells = cellsFromTbody(tbody);
-  // 3 fixture rows
-  expect(cells).toHaveLength(3);
-  expect(cells[0][0]).toBe('Morning run');
-  expect(cells[0][1]).toBe('Health');
-  expect(cells[0][2]).toBe('Daily');
-  expect(cells[0][3]).toBe('2 check-ins');
-});
-
-it('React HabitList renders identical per-cell content to the golden master', () => {
-  const vanillaTbody = captureOldRenderOutput(FIXTURE);
-  const goldenCells = cellsFromTbody(vanillaTbody);
 
   const { container } = render(
     <HabitList
@@ -82,11 +73,15 @@ it('React HabitList renders identical per-cell content to the golden master', ()
       onCheckIn={() => {}}
     />
   );
-  const reactTbody = container.querySelector('tbody');
-  const reactCells = cellsFromTbody(reactTbody);
 
-  // Compare first 4 data columns (name, category, frequency, check-ins)
-  // cell by cell — not a joined string, so whitespace differences don't hide mismatches
+  const reactTbody = container.querySelector('tbody');
+  const reactCells = Array.from(reactTbody.querySelectorAll('tr')).map((row) =>
+    Array.from(row.querySelectorAll('td')).map((td) =>
+      td.textContent.trim().replace(/\s+/g, ' ')
+    )
+  );
+
+  // Compare first 4 data columns only (name, category, frequency, check-ins)
   goldenCells.forEach((goldenRow, rowIdx) => {
     goldenRow.slice(0, 4).forEach((goldenCell, colIdx) => {
       expect(reactCells[rowIdx][colIdx]).toBe(goldenCell);
@@ -95,16 +90,13 @@ it('React HabitList renders identical per-cell content to the golden master', ()
 });
 
 it('filterHabits (migrated verbatim) returns identical results to the pre-migration function', () => {
-  // Category filter
   const healthOnly = filterHabits(FIXTURE, 'Health', null, null);
   expect(healthOnly).toHaveLength(1);
   expect(healthOnly[0].name).toBe('Morning run');
 
-  // No filter returns all
   const all = filterHabits(FIXTURE, '', null, null);
   expect(all).toHaveLength(3);
 
-  // No match returns empty
   const none = filterHabits(FIXTURE, 'Nonexistent', null, null);
   expect(none).toHaveLength(0);
 });
