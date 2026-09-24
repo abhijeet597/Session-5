@@ -56,3 +56,9 @@ export async function getAtRisk(groupId, token) {
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to fetch at-risk members'); }
   return res.json();
 }
+
+export async function getMemberStreaks(groupId, token) {
+  const res = await fetch(`${API_BASE}/${groupId}/streaks`, { headers: authHeaders(token) });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to fetch member streaks'); }
+  return res.json();
+}

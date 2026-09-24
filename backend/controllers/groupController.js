@@ -202,6 +202,31 @@ async function removeMember(req, res) {
   }
 }
 
+async function getMemberStreaks(req, res) {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    const membership = await GroupMembership.findOne({ groupId: group._id, userId: req.userId });
+    if (!membership) return res.status(403).json({ error: 'You are not a member of this group' });
+    const memberships = await GroupMembership.find({ groupId: group._id });
+    const memberIds = memberships.map((m) => m.userId);
+    const users = await User.find({ _id: { $in: memberIds } }).select('email');
+    const allHabits = await Habit.find({ userId: { $in: memberIds } });
+    const result = memberships.map((m) => {
+      const user = users.find((u) => u._id.equals(m.userId));
+      const userHabits = allHabits.filter((h) => h.userId.equals(m.userId));
+      const dateSet = allCompletedDates(userHabits);
+      const streak = currentStreak(dateSet);
+      return { userId: m.userId, email: user?.email, streak };
+    });
+    result.sort((a, b) => b.streak - a.streak);
+    res.json(result);
+  } catch (err) {
+    console.error('getMemberStreaks error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 async function getAtRisk(req, res) {
   try {
     const group = await Group.findById(req.params.id);
@@ -256,4 +281,4 @@ async function getAtRisk(req, res) {
   }
 }
 
-module.exports = { listGroups, createGroup, getGroup, deleteGroup, addMember, removeMember, getAtRisk, acceptInvite, rejectInvite };
+module.exports = { listGroups, createGroup, getGroup, deleteGroup, addMember, removeMember, getAtRisk, getMemberStreaks, acceptInvite, rejectInvite };

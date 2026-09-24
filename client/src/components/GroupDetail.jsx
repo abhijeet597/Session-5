@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getGroup, addMember, removeMember, getAtRisk } from '../lib/groups';
+import { getGroup, addMember, removeMember, getAtRisk, getMemberStreaks } from '../lib/groups';
 import { getAuthToken } from '../lib/authApi';
 
 export default function GroupDetail({ groupId, currentUserId, onLeave }) {
   const [group, setGroup] = useState(null);
   const [atRisk, setAtRisk] = useState(null);
+  const [streaks, setStreaks] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -18,7 +19,17 @@ export default function GroupDetail({ groupId, currentUserId, onLeave }) {
     }
   }
 
-  useEffect(() => { fetchGroup(); setAtRisk(null); }, [groupId]);
+  async function fetchStreaks() {
+    const token = getAuthToken();
+    try {
+      const data = await getMemberStreaks(groupId, token);
+      setStreaks(data);
+    } catch {
+      // non-critical
+    }
+  }
+
+  useEffect(() => { fetchGroup(); setAtRisk(null); setStreaks(null); fetchStreaks(); }, [groupId]);
 
   async function handleInvite(e) {
     e.preventDefault();
@@ -64,16 +75,24 @@ export default function GroupDetail({ groupId, currentUserId, onLeave }) {
 
       <h4>Members</h4>
       <ul>
-        {group.members?.map((m) => (
-          <li key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span>{m.email}</span>
-            {(isOwner || m.userId?.toString() === currentUserId) && (
-              <button type="button" onClick={() => handleRemove(m.userId?.toString())} style={{ fontSize: '0.75rem' }}>
-                {m.userId?.toString() === currentUserId ? 'Leave' : 'Remove'}
-              </button>
-            )}
-          </li>
-        ))}
+        {group.members?.map((m) => {
+          const memberStreak = streaks?.find((s) => s.userId?.toString() === m.userId?.toString());
+          return (
+            <li key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span>{m.email}</span>
+              {streaks && (
+                <span style={{ fontSize: '0.8rem', color: memberStreak?.streak > 0 ? 'var(--color-primary, #667eea)' : 'var(--color-text-muted, #718096)', fontWeight: 600 }}>
+                  🔥 {memberStreak?.streak ?? 0}d
+                </span>
+              )}
+              {(isOwner || m.userId?.toString() === currentUserId) && (
+                <button type="button" onClick={() => handleRemove(m.userId?.toString())} style={{ fontSize: '0.75rem' }}>
+                  {m.userId?.toString() === currentUserId ? 'Leave' : 'Remove'}
+                </button>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       {isOwner && (
