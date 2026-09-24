@@ -3,7 +3,7 @@ import { getGroup, addMember, removeMember, getAtRisk } from '../lib/groups';
 
 export default function GroupDetail({ groupId, token, currentUserId, onLeave }) {
   const [group, setGroup] = useState(null);
-  const [atRisk, setAtRisk] = useState([]);
+  const [atRisk, setAtRisk] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -16,7 +16,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
     }
   }
 
-  useEffect(() => { fetchGroup(); }, [groupId]);
+  useEffect(() => { fetchGroup(); setAtRisk(null); }, [groupId]);
 
   async function handleInvite(e) {
     e.preventDefault();
@@ -50,7 +50,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
 
   if (!group) return <p>Loading group…</p>;
 
-  const isOwner = group.ownerId === currentUserId || group.ownerId?.toString() === currentUserId;
+  const isOwner = group.ownerId?.toString() === currentUserId;
 
   return (
     <div className="group-detail">
@@ -86,7 +86,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
 
       <div style={{ marginTop: '1rem' }}>
         <button type="button" onClick={handleCheckAtRisk}>Check At-Risk Today</button>
-        {atRisk.length > 0 && (
+        {atRisk !== null && atRisk.length > 0 && (
           <ul style={{ marginTop: '0.5rem' }}>
             {atRisk.map((m) => (
               <li key={m.userId} style={{ color: 'var(--color-danger, #e53e3e)' }}>
@@ -95,7 +95,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
             ))}
           </ul>
         )}
-        {atRisk.length === 0 && <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted, #718096)', marginTop: '0.5rem' }}>No members at risk today.</p>}
+        {atRisk !== null && atRisk.length === 0 && <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted, #718096)', marginTop: '0.5rem' }}>No members at risk today.</p>}
       </div>
     </div>
   );

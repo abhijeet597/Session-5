@@ -121,22 +121,14 @@ test('removeMember returns 204 on success (owner removes another member)', async
   assert.strictEqual(res.statusCode, 204);
 });
 
-test('removeMember dissolves group when owner removes themselves', async () => {
+test('removeMember returns 400 when owner tries to remove themselves (must use deleteGroup instead)', async () => {
   const callerId = 'aaaaaaaaaaaaaaaaaaaaaaaa';
   const ownerId = fakeId(callerId);
   const groupId = fakeId('cccccccccccccccccccccccc');
   mock.method(Group, 'findById', async () => ({ _id: groupId, name: 'G', ownerId }));
   mock.method(GroupMembership, 'findOne', async () => ({ _id: fakeId('dddddddddddddddddddddddd'), groupId: groupId.toString(), userId: callerId }));
-  let deletedMemberships = false;
-  let deletedNotifications = false;
-  let deletedGroup = false;
-  mock.method(GroupMembership, 'deleteMany', async () => { deletedMemberships = true; return {}; });
-  mock.method(Notification, 'deleteMany', async () => { deletedNotifications = true; return {}; });
-  mock.method(Group, 'findByIdAndDelete', async () => { deletedGroup = true; return {}; });
   const res = mockRes();
   await removeMember({ userId: callerId, params: { id: groupId.toString(), userId: callerId } }, res);
-  assert.strictEqual(res.statusCode, 204);
-  assert.ok(deletedMemberships, 'GroupMembership.deleteMany should have been called');
-  assert.ok(deletedNotifications, 'Notification.deleteMany should have been called');
-  assert.ok(deletedGroup, 'Group.findByIdAndDelete should have been called');
+  assert.strictEqual(res.statusCode, 400);
+  assert.ok(res.body.error.includes('Delete the group'));
 });

@@ -88,6 +88,10 @@ async function addMember(req, res) {
     if (invitee._id.equals(req.userId)) return res.status(400).json({ error: 'You cannot invite yourself to your own group' });
     const existing = await GroupMembership.findOne({ groupId: group._id, userId: invitee._id });
     if (existing) return res.status(409).json({ error: 'User is already a member' });
+    const inviteeMembershipCount = await GroupMembership.countDocuments({ userId: invitee._id });
+    if (inviteeMembershipCount >= MAX_GROUPS_PER_USER) {
+      return res.status(400).json({ error: `That user is already in ${MAX_GROUPS_PER_USER} groups` });
+    }
     const count = await GroupMembership.countDocuments({ groupId: group._id });
     if (count >= MAX_GROUP_SIZE) return res.status(400).json({ error: `Group is full (max ${MAX_GROUP_SIZE} members)` });
     const membership = await GroupMembership.create({ groupId: group._id, userId: invitee._id });
@@ -110,10 +114,7 @@ async function removeMember(req, res) {
     const membership = await GroupMembership.findOne({ groupId: group._id, userId: targetId });
     if (!membership) return res.status(404).json({ error: 'Member not found' });
     if (group.ownerId.equals(targetId)) {
-      await GroupMembership.deleteMany({ groupId: group._id });
-      await Notification.deleteMany({ 'payload.groupId': group._id.toString() });
-      await Group.findByIdAndDelete(group._id);
-      return res.status(204).send();
+      return res.status(400).json({ error: 'Owner cannot leave the group. Delete the group instead.' });
     }
     await GroupMembership.findByIdAndDelete(membership._id);
     res.status(204).send();
