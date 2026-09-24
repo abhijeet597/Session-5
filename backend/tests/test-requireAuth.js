@@ -1,10 +1,12 @@
+process.env.JWT_SECRET = 'test-secret';
+
 const { test } = require('node:test');
 const assert = require('node:assert');
 const jwt = require('jsonwebtoken');
 
 const requireAuth = require('../middleware/requireAuth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-habit-tracker';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function mockRes() {
   return {

@@ -1,3 +1,5 @@
+process.env.JWT_SECRET = 'test-secret';
+
 const { test, mock, afterEach } = require('node:test');
 const assert = require('node:assert');
 const bcrypt = require('bcryptjs');

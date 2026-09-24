@@ -16,6 +16,8 @@ import FilterBar from '../components/FilterBar';
 import Dashboard from '../components/Dashboard';
 import AddHabitForm from '../components/AddHabitForm';
 import AddCategoryForm from '../components/AddCategoryForm';
+import GroupsPanel from '../components/GroupsPanel';
+import NotificationBell from '../components/NotificationBell';
 
 const SORT_KEY = 'habitTracker.sort';
 
@@ -74,6 +76,12 @@ export default function HabitsPage() {
   const [sort, setSort] = useState(loadSort);
 
   const token = getAuthToken();
+  let currentUserId = null;
+  try {
+    currentUserId = token ? JSON.parse(atob(token.split('.')[1])).userId : null;
+  } catch {
+    // malformed token — treat as logged out
+  }
 
   const fetchAll = useCallback(async () => {
     try {
@@ -192,7 +200,10 @@ export default function HabitsPage() {
     <div id="app-container">
       <header className="app-header">
         <h1>Habit Tracker</h1>
-        <button type="button" className="btn-logout" onClick={logout}>Log Out</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <NotificationBell token={token} />
+          <button type="button" className="btn-logout" onClick={logout}>Log Out</button>
+        </div>
       </header>
 
       <main className="app-main">
@@ -238,6 +249,11 @@ export default function HabitsPage() {
             onEdit={handleEdit}
             onCheckIn={handleCheckIn}
           />
+        </div>
+
+        {/* Accountability Groups */}
+        <div className="card">
+          <GroupsPanel token={token} currentUserId={currentUserId} />
         </div>
       </main>
     </div>

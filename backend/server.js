@@ -6,6 +6,8 @@ const habitsRouter = require('./routes/habits');
 const categoriesRouter = require('./routes/categories');
 const authRouter = require('./routes/auth');
 const dashboardRouter = require('./routes/dashboard');
+const groupsRouter = require('./routes/groups');
+const notificationsRouter = require('./routes/notifications');
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -15,6 +17,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/habits', requireAuth, habitsRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
 app.use('/api/dashboard', requireAuth, dashboardRouter);
+app.use('/api/groups', requireAuth, groupsRouter);
+app.use('/api/notifications', requireAuth, notificationsRouter);
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
 app.get('*', (req, res) => {
@@ -28,12 +32,17 @@ if (require.main === module) {
     process.exit(1);
   }
 
-  mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/habit-tracker')
-    .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => console.error('MongoDB connection error:', err));
-
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  (async () => {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/habit-tracker');
+      console.log('Connected to MongoDB');
+    } catch (err) {
+      console.error('MongoDB connection error:', err);
+      process.exit(1);
+    }
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })();
 }
 
 module.exports = app;

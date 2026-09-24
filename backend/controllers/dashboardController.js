@@ -1,55 +1,5 @@
 const Habit = require('../models/Habit');
-
-function allCompletedDates(habits) {
-  const dates = new Set();
-  habits.forEach((habit) => {
-    habit.completedDates.forEach((date) => dates.add(date));
-  });
-  return dates;
-}
-
-function toISO(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function currentStreak(completedDateSet) {
-  let streak = 0;
-  const cursor = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
-
-  // If today has no completions yet, start counting from yesterday instead,
-  // so an in-progress streak isn't reset to 0 before the day is over.
-  if (!completedDateSet.has(toISO(cursor))) {
-    cursor.setUTCDate(cursor.getUTCDate() - 1);
-  }
-
-  while (completedDateSet.has(toISO(cursor))) {
-    streak += 1;
-    cursor.setUTCDate(cursor.getUTCDate() - 1);
-  }
-
-  return streak;
-}
-
-function longestStreak(completedDateSet) {
-  const sortedDates = [...completedDateSet].sort();
-  let longest = 0;
-  let current = 0;
-  let prev = null;
-
-  sortedDates.forEach((dateStr) => {
-    const date = new Date(`${dateStr}T00:00:00Z`);
-    if (prev) {
-      const dayDiff = Math.round((date - prev) / 86400000);
-      current = dayDiff === 1 ? current + 1 : 1;
-    } else {
-      current = 1;
-    }
-    longest = Math.max(longest, current);
-    prev = date;
-  });
-
-  return longest;
-}
+const { toISO, allCompletedDates, currentStreak, longestStreak } = require('../utils/streakUtils');
 
 function startOfWeek(date) {
   const start = new Date(date);
