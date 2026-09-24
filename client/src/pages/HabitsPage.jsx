@@ -201,7 +201,7 @@ export default function HabitsPage() {
       <header className="app-header">
         <h1>Habit Tracker</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <NotificationBell token={token} />
+          <NotificationBell />
           <button type="button" className="btn-logout" onClick={logout}>Log Out</button>
         </div>
       </header>
@@ -253,7 +253,7 @@ export default function HabitsPage() {
 
         {/* Accountability Groups */}
         <div className="card">
-          <GroupsPanel token={token} currentUserId={currentUserId} />
+          <GroupsPanel currentUserId={currentUserId} />
         </div>
       </main>
     </div>

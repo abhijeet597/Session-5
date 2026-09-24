@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { listGroups, createGroup, deleteGroup } from '../lib/groups';
+import { getAuthToken } from '../lib/authApi';
 import GroupDetail from './GroupDetail';
 
-export default function GroupsPanel({ token, currentUserId }) {
+export default function GroupsPanel({ currentUserId }) {
   const [groups, setGroups] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
 
   async function fetchGroups() {
+    const token = getAuthToken();
     try {
       const data = await listGroups(token);
       setGroups(data);
@@ -17,10 +19,11 @@ export default function GroupsPanel({ token, currentUserId }) {
     }
   }
 
-  useEffect(() => { fetchGroups(); }, [token]);
+  useEffect(() => { fetchGroups(); }, []);
 
   async function handleCreate(e) {
     e.preventDefault();
+    const token = getAuthToken();
     try {
       await createGroup(newName, token);
       setNewName('');
@@ -31,6 +34,7 @@ export default function GroupsPanel({ token, currentUserId }) {
   }
 
   async function handleDelete(id) {
+    const token = getAuthToken();
     try {
       await deleteGroup(id, token);
       if (selectedId === id) setSelectedId(null);
@@ -77,7 +81,6 @@ export default function GroupsPanel({ token, currentUserId }) {
         <div style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px' }}>
           <GroupDetail
             groupId={selectedId}
-            token={token}
             currentUserId={currentUserId}
             onLeave={() => { setSelectedId(null); fetchGroups(); }}
           />

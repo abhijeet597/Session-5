@@ -2,7 +2,11 @@ const Notification = require('../models/Notification');
 
 async function listNotifications(req, res) {
   try {
-    const notifications = await Notification.find({ recipientId: req.userId, read: false })
+    // Include unread general notifications AND all pending invites (even if somehow marked read)
+    const notifications = await Notification.find({
+      recipientId: req.userId,
+      $or: [{ read: false }, { type: 'GROUP_INVITE', status: 'pending' }],
+    })
       .sort({ createdAt: -1 })
       .limit(50);
     res.json(notifications);

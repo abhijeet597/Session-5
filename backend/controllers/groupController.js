@@ -94,10 +94,88 @@ async function addMember(req, res) {
     }
     const count = await GroupMembership.countDocuments({ groupId: group._id });
     if (count >= MAX_GROUP_SIZE) return res.status(400).json({ error: `Group is full (max ${MAX_GROUP_SIZE} members)` });
-    const membership = await GroupMembership.create({ groupId: group._id, userId: invitee._id });
-    res.status(201).json(membership);
+    // Send invite notification instead of adding directly
+    const inviter = await User.findById(req.userId).select('email');
+    const deduplicationKey = `invite:${group._id}:${invitee._id}`;
+    const existingInvite = await Notification.findOne({ recipientId: invitee._id, deduplicationKey });
+    if (existingInvite && existingInvite.status === 'pending') {
+      return res.status(409).json({ error: 'An invite is already pending for this user' });
+    }
+    const invite = await Notification.create({
+      recipientId: invitee._id,
+      type: 'GROUP_INVITE',
+      payload: {
+        groupId: group._id.toString(),
+        groupName: group.name,
+        inviterEmail: inviter?.email,
+      },
+      read: false,
+      status: 'pending',
+      deduplicationKey,
+    });
+    res.status(201).json({ message: 'Invite sent', inviteId: invite._id });
   } catch (err) {
     console.error('addMember error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function acceptInvite(req, res) {
+  try {
+    const invite = await Notification.findOne({
+      _id: req.params.inviteId,
+      recipientId: req.userId,
+      type: 'GROUP_INVITE',
+      status: 'pending',
+    });
+    if (!invite) return res.status(404).json({ error: 'Invite not found or already resolved' });
+    const group = await Group.findById(invite.payload.groupId);
+    if (!group) {
+      invite.status = 'rejected';
+      invite.read = true;
+      await invite.save();
+      return res.status(404).json({ error: 'Group no longer exists' });
+    }
+    const alreadyMember = await GroupMembership.findOne({ groupId: group._id, userId: req.userId });
+    if (alreadyMember) {
+      invite.status = 'accepted';
+      invite.read = true;
+      await invite.save();
+      return res.status(409).json({ error: 'You are already a member' });
+    }
+    const count = await GroupMembership.countDocuments({ groupId: group._id });
+    if (count >= MAX_GROUP_SIZE) {
+      invite.status = 'rejected';
+      invite.read = true;
+      await invite.save();
+      return res.status(400).json({ error: 'Group is now full' });
+    }
+    await GroupMembership.create({ groupId: group._id, userId: req.userId });
+    invite.status = 'accepted';
+    invite.read = true;
+    await invite.save();
+    res.json({ message: 'Invite accepted' });
+  } catch (err) {
+    console.error('acceptInvite error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function rejectInvite(req, res) {
+  try {
+    const invite = await Notification.findOne({
+      _id: req.params.inviteId,
+      recipientId: req.userId,
+      type: 'GROUP_INVITE',
+      status: 'pending',
+    });
+    if (!invite) return res.status(404).json({ error: 'Invite not found or already resolved' });
+    invite.status = 'rejected';
+    invite.read = true;
+    await invite.save();
+    res.json({ message: 'Invite rejected' });
+  } catch (err) {
+    console.error('rejectInvite error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -178,4 +256,4 @@ async function getAtRisk(req, res) {
   }
 }
 
-module.exports = { listGroups, createGroup, getGroup, deleteGroup, addMember, removeMember, getAtRisk };
+module.exports = { listGroups, createGroup, getGroup, deleteGroup, addMember, removeMember, getAtRisk, acceptInvite, rejectInvite };

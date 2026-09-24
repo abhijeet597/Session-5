@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { getGroup, addMember, removeMember, getAtRisk } from '../lib/groups';
+import { getAuthToken } from '../lib/authApi';
 
-export default function GroupDetail({ groupId, token, currentUserId, onLeave }) {
+export default function GroupDetail({ groupId, currentUserId, onLeave }) {
   const [group, setGroup] = useState(null);
   const [atRisk, setAtRisk] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [error, setError] = useState('');
 
   async function fetchGroup() {
+    const token = getAuthToken();
     try {
       const data = await getGroup(groupId, token);
       setGroup(data);
@@ -20,6 +22,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
 
   async function handleInvite(e) {
     e.preventDefault();
+    const token = getAuthToken();
     try {
       await addMember(groupId, inviteEmail, token);
       setInviteEmail('');
@@ -30,6 +33,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
   }
 
   async function handleRemove(userId) {
+    const token = getAuthToken();
     try {
       await removeMember(groupId, userId, token);
       if (userId === currentUserId) { onLeave(); return; }
@@ -40,6 +44,7 @@ export default function GroupDetail({ groupId, token, currentUserId, onLeave }) 
   }
 
   async function handleCheckAtRisk() {
+    const token = getAuthToken();
     try {
       const data = await getAtRisk(groupId, token);
       setAtRisk(data);

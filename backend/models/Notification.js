@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
   recipientId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type:             { type: String, required: true, enum: ['MEMBER_AT_RISK'] },
+  type:             { type: String, required: true, enum: ['MEMBER_AT_RISK', 'GROUP_INVITE'] },
+  status:           { type: String, enum: ['pending', 'accepted', 'rejected'], default: null },
   payload:          { type: mongoose.Schema.Types.Mixed },
   read:             { type: Boolean, default: false },
   deduplicationKey: { type: String, required: true },
